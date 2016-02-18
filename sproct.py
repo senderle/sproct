@@ -2,6 +2,7 @@ import re
 import argparse
 from functools import wraps
 from collections import namedtuple, defaultdict, Hashable
+from difflib import SequenceMatcher
 
 _word_regex = re.compile(r'\w+')
 _word_punct_regex = re.compile(r'\w+|[^\w\s]+')
@@ -151,20 +152,80 @@ def get_args():
 
     sub = parser.add_subparsers()
     cwords = sub.add_parser(
-        'character_word_count',
+        'count',
         help='Count the number of words a character speaks in the given play.'
     )
     cwords.add_argument('text', type=str, help='The play text file.')
     cwords.add_argument(
-        'character_name', type=str, help="The character's name."
+        '--character', '-c', type=str, help='The name of the character.',
+        default=None
     )
+
+    diff = sub.add_parser(
+        'diff', help='Return the approximate degree of difference between'
+        'two plays, at the character level, as a decimal fraction between'
+        '0.0 and 1.0.'
+    )
+    diff.add_argument('text_one', type=str, help='The first play text file.')
+    diff.add_argument('text_two', type=str, help='The second play text file.')
 
     return parser.parse_args()
 
+class Commands(object):
+    def __init__(self):
+        parser = argparse.ArgumentParser(description='Count words in a play.')
+
+        sub = parser.add_subparsers()
+        cwords = sub.add_parser(
+            'count', help='Count the number of words a character speaks in '
+            'the given play.'
+        )
+        cwords.add_argument('text', type=str, help='The play text file.')
+        cwords.add_argument(
+            '--character', '-c', type=str, help='The name of the character.',
+            default=None
+        )
+        cwords.set_defaults(command=self.cwords)
+
+        diff = sub.add_parser(
+            'diff', help='Return the approximate degree of difference between'
+            'two plays, at the character level, as a decimal fraction between'
+            '0.0 and 1.0.'
+        )
+        diff.add_argument(
+            'text_one', type=str, help='The first play text file.'
+        )
+        diff.add_argument(
+            'text_two', type=str, help='The second play text file.'
+        )
+        diff.set_defaults(command=self.diff)
+
+        self.args = parser.parse_args()
+
+    def __call__(self, *args, **kwargs):
+        self.args.command(*args, **kwargs)
+
+    def cwords(self, *args, **kwargs):
+        lines = loadlines(self.args.text, character_allcaps_split)
+        play = Play(lines)
+        wc = CharacterWordCount(play)
+        char = self.args.character
+        wc(None if char == 'all' else char)
+
+    def diff(self, *args, **kwargs):
+        a = self.args.text_one
+        b = self.args.text_two
+
+        s = SequenceMatcher(a=a, b=b)
+        print 'Ratio of difference betwteen the texts:'
+        print '  {}'.format(s.ratio())
+        print
+        print '(Where T is the total number of elements in both sequences, '
+        print ' and M is the number of matches, this is 2.0*M / T. Note '
+        print ' that this is 1.0 if the sequences are identical, and 0.0 '
+        print ' if they have nothing in common. '
+        print '                --Python difflib documentation)'
+
 if __name__ == '__main__':
-    args = get_args()
-    lines = loadlines(args.text, character_allcaps_split)
-    play = Play(lines)
-    wc = CharacterWordCount(play)
-    char = args.character_name
-    wc(None if char == 'all' else char)
+    cmd = Commands()
+    cmd()
