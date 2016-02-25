@@ -356,8 +356,6 @@ class Commands(object):
             print
         print lines[max(range(len(rowsums)), key=rowsums.__getitem__)]
 
-
-
 if __name__ == '__main__':
     cmd = Commands()
     cmd()
