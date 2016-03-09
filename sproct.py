@@ -200,8 +200,8 @@ class Commands(object):
         cwords.set_defaults(command=self.cwords)
 
         diff = sub.add_parser(
-            'diff', help='Return the approximate degree of difference between'
-            'two plays, at the character level, as a decimal fraction between'
+            'diff', help='Return the approximate degree of difference between '
+            'two plays, at the character level, as a decimal fraction between '
             '0.0 and 1.0.'
         )
         diff.add_argument(
@@ -218,7 +218,10 @@ class Commands(object):
         diff.set_defaults(command=self.diff)
 
         bobsim = sub.add_parser(
-            'bobsim', help='Foo!!!'
+            'bobsim', help='Compare two plays, and identify lines longer '
+            'than 74 words that have substantial similarities in content. '
+            'Uses the simplest thing I could think of that might work, and '
+            'is therefore somewhat slow.'
         )
         bobsim.add_argument(
             'text_one', type=str, help='The first play text file.'
@@ -321,6 +324,11 @@ class Commands(object):
                     print line_b.character
                     print line_b.text
                     print
+
+                    sm = SequenceMatcher(line_a.words, line_b.words)
+                    print 'Similarity: {}'.format(sm.ratio())
+                    print
+
                     print "____________"
                     print "Edits:"
                     df = Differ()
