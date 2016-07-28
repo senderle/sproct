@@ -152,8 +152,8 @@ class CharacterWordCount(object):
         names = sorted(self.play.character_index)
         rows.extend((n,) + self.wc_tuple(n) for n in names)
 
-        rowtemplate = '  {row[0]: <{maxlen}}{row[1]: <{maxlen}}' \
-                      '{row[2]: <{maxlen}}{row[3]: <{maxlen}}'
+        rowtemplate = '\t{row[0]: <{maxlen}}\t{row[1]: <{maxlen}}' \
+                      '\t{row[2]: <{maxlen}}\t{row[3]: <{maxlen}}'
 
         maxlen = max(len(str(d)) for row in rows for d in row) + 2
         print 'Word counts for all characters.'
@@ -192,7 +192,9 @@ class Commands(object):
             'count', help='Count the number of words a character speaks in '
             'the given play.'
         )
-        cwords.add_argument('text', type=str, help='The play text file.')
+        cwords.add_argument(
+            'texts', nargs='+', type=str, help='The play text file or files.'
+        )
         cwords.add_argument(
             '--character', '-c', type=str, help='The name of the character.',
             default=None
@@ -237,11 +239,16 @@ class Commands(object):
         self.args.command(*args, **kwargs)
 
     def cwords(self, *args, **kwargs):
-        lines = loadlines(self.args.text, character_allcaps_split)
-        play = Play(lines)
-        wc = CharacterWordCount(play)
+        texts = self.args.texts
+        lines = [loadlines(t, character_allcaps_split) for t in texts]
+        plays = [Play(ln) for ln in lines]
+        wcs = [CharacterWordCount(p) for p in plays]
         char = self.args.character
-        wc(None if char == 'all' else char)
+
+        for t, wc in zip(texts, wcs):
+            print
+            print '{}:'.format(t),
+            wc(None if char == 'all' else char)
 
     def diff(self):
         char = self.args.character
